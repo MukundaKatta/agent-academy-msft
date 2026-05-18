@@ -7,6 +7,16 @@ Microsoft's open-source agent SDK — routed through **Vertex AI Gemini 2.5 Flas
 **Demo video:** https://youtu.be/wCPa7pLAaII (1:59)
 **License:** Apache 2.0
 
+> **Status:** This repo was originally scoped for the Agent Academy
+> (Microsoft) hackathon but was not submitted: that contest restricts the
+> "Microsoft product" requirement to Microsoft Copilot Studio, Microsoft
+> 365 Copilot, or Copilot Cowork, none of which were available without an
+> M365 subscription. The agent stands on its own as a Semantic Kernel +
+> Vertex AI Gemini reference and is the sibling project to
+> [gemini-ops-agent](https://github.com/MukundaKatta/gemini-ops-agent),
+> [gemini-eval-agent](https://github.com/MukundaKatta/gemini-eval-agent),
+> and [gemini-data-agent](https://github.com/MukundaKatta/gemini-data-agent).
+
 ## What it does
 
 You give it a GitHub repo + PR number. The agent walks the PR with three
