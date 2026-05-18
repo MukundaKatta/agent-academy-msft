@@ -58,8 +58,8 @@ apache-2
 
 ## Try it out
 - Code repo: https://github.com/MukundaKatta/agent-academy-msft
-- Live demo: <PASTE_AFTER_DEPLOY>
-- Demo video (YouTube unlisted): <PASTE_AFTER_REC>
+- Live demo: https://agent-academy-msft-1029931682737.us-central1.run.app
+- Demo video (YouTube unlisted): https://youtu.be/wCPa7pLAaII
 
 ## Submission checklist
 - [x] At least one Microsoft product used (Semantic Kernel)

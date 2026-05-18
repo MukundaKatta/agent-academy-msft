@@ -3,7 +3,9 @@
 A pull-request reviewer agent built on **Microsoft Semantic Kernel** —
 Microsoft's open-source agent SDK — routed through **Vertex AI Gemini 2.5 Flash**.
 
-Open source under Apache 2.0.
+**Live demo:** https://agent-academy-msft-1029931682737.us-central1.run.app
+**Demo video:** https://youtu.be/wCPa7pLAaII (1:59)
+**License:** Apache 2.0
 
 ## What it does
 
