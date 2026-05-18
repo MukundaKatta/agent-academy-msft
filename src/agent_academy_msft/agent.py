@@ -1,17 +1,19 @@
-"""Semantic Kernel agent wired to Azure OpenAI + the GitHubPRPlugin.
+"""Semantic Kernel agent wired to Vertex AI Gemini + the GitHubPRPlugin.
 
-The agent is a pull-request reviewer. You give it a repo and PR number, it
-calls the plugin tools to fetch metadata + files + diff, then returns a
-structured review.
+The Microsoft product used here is **Semantic Kernel** (Microsoft's open-source
+agent SDK). Semantic Kernel works with multiple AI providers; this build
+routes through Vertex AI Gemini (via the
+`semantic_kernel.connectors.ai.google.vertex_ai` connector) because the
+project already has GCP plumbing wired and reviewers can run it without
+needing an Azure subscription.
 
-Environment variables (real Azure mode):
-    AZURE_OPENAI_ENDPOINT      https://your-resource.openai.azure.com/
-    AZURE_OPENAI_API_KEY       Key 1 or 2 from the resource's Keys & Endpoint tab
-    AZURE_OPENAI_DEPLOYMENT    Your model deployment name (e.g. 'gpt-4o-mini')
-    AZURE_OPENAI_API_VERSION   default: 2024-10-21
+Environment variables (real LLM mode):
+    GOOGLE_CLOUD_PROJECT       Your GCP project ID
+    GOOGLE_CLOUD_LOCATION      Default: us-central1
+    SK_GEMINI_MODEL            Default: gemini-2.5-flash
 
-Offline fallback: if no AZURE_OPENAI_ENDPOINT is set, the agent returns a
-deterministic canned review so the tests + dashboard render without
+Offline fallback: if GOOGLE_CLOUD_PROJECT is not set the agent returns a
+deterministic rule-based review so the tests + dashboard render without
 credentials.
 """
 
@@ -63,7 +65,6 @@ class ReviewResult:
 def _try_import_sk() -> bool:
     try:
         import semantic_kernel  # noqa: F401
-        from openai import AsyncAzureOpenAI  # noqa: F401
         return True
     except ImportError:
         return False
@@ -99,7 +100,7 @@ def _offline_review(repo: str, number: int, stub: bool) -> ReviewResult:
             + "\n\nNEXT STEP:\n"
             + (f"- Address the concerns above before merge.\n" if concerns
                else "- Looks good. Squash + merge when CI is green.\n")
-            + "\n(offline-fallback review; no Azure OpenAI credentials configured)\n"
+            + "\n(offline-fallback review; no GOOGLE_CLOUD_PROJECT configured)\n"
         ),
         fn_calls=["get_pr_summary", "list_pr_files"],
     )
@@ -109,15 +110,15 @@ async def _arun_review(repo: str, number: int, stub: bool) -> ReviewResult:
     if not _try_import_sk():
         return _offline_review(repo, number, stub)
 
-    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-    if not endpoint:
+    project = os.getenv("GOOGLE_CLOUD_PROJECT")
+    if not project:
         return _offline_review(repo, number, stub)
 
-    # Real path: Azure OpenAI via Semantic Kernel.
+    # Real path: Vertex AI Gemini via Semantic Kernel.
     from semantic_kernel import Kernel
-    from semantic_kernel.connectors.ai.open_ai import (
-        AzureChatCompletion,
-        AzureChatPromptExecutionSettings,
+    from semantic_kernel.connectors.ai.google.vertex_ai import (
+        VertexAIChatCompletion,
+        VertexAIChatPromptExecutionSettings,
     )
     from semantic_kernel.connectors.ai.function_choice_behavior import (
         FunctionChoiceBehavior,
@@ -125,19 +126,18 @@ async def _arun_review(repo: str, number: int, stub: bool) -> ReviewResult:
     from semantic_kernel.contents import ChatHistory
 
     kernel = Kernel()
-    kernel.add_service(AzureChatCompletion(
-        service_id="azure-chat",
-        deployment_name=os.environ["AZURE_OPENAI_DEPLOYMENT"],
-        endpoint=endpoint,
-        api_key=os.environ["AZURE_OPENAI_API_KEY"],
-        api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21"),
+    kernel.add_service(VertexAIChatCompletion(
+        service_id="vertex-chat",
+        project_id=project,
+        region=os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1"),
+        gemini_model_id=os.getenv("SK_GEMINI_MODEL", "gemini-2.5-flash"),
     ))
     kernel.add_plugin(GitHubPRPlugin(stub=stub), plugin_name="github")
 
-    settings = AzureChatPromptExecutionSettings(
-        service_id="azure-chat",
+    settings = VertexAIChatPromptExecutionSettings(
+        service_id="vertex-chat",
         function_choice_behavior=FunctionChoiceBehavior.Auto(),
-        max_tokens=1000,
+        max_output_tokens=1000,
         temperature=0.2,
     )
 
@@ -145,7 +145,7 @@ async def _arun_review(repo: str, number: int, stub: bool) -> ReviewResult:
     history.add_system_message(SYSTEM_PROMPT)
     history.add_user_message(f"Review pull request {repo}#{number}.")
 
-    chat_completion = kernel.get_service("azure-chat")
+    chat_completion = kernel.get_service("vertex-chat")
     response = await chat_completion.get_chat_message_content(
         chat_history=history,
         settings=settings,

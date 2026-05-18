@@ -21,7 +21,7 @@ st.set_page_config(page_title="agent-academy-msft", layout="wide", page_icon=":m
 st.title("agent-academy-msft")
 st.caption(
     "Pull-request reviewer agent built on Microsoft Semantic Kernel + "
-    "Azure OpenAI (gpt-4o-mini). Apache 2.0."
+    "Vertex AI Gemini 2.5 Flash. Apache 2.0."
 )
 
 with st.sidebar:
@@ -35,10 +35,11 @@ with st.sidebar:
     )
     run = st.button("Run review", type="primary", use_container_width=True)
     st.divider()
-    azure_ok = bool(os.getenv("AZURE_OPENAI_ENDPOINT"))
+    vertex_ok = bool(os.getenv("GOOGLE_CLOUD_PROJECT"))
     st.caption(
-        f"Azure OpenAI configured: `{azure_ok}`  "
-        f"Deployment: `{os.getenv('AZURE_OPENAI_DEPLOYMENT', 'not-set')}`"
+        f"Vertex AI configured: `{vertex_ok}`  "
+        f"Project: `{os.getenv('GOOGLE_CLOUD_PROJECT', 'not-set')}`  "
+        f"Model: `{os.getenv('SK_GEMINI_MODEL', 'gemini-2.5-flash')}`"
     )
 
 st.markdown(

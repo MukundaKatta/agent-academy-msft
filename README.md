@@ -1,58 +1,65 @@
 # agent-academy-msft
 
-A pull-request reviewer agent built on **Microsoft Semantic Kernel** and
-**Azure OpenAI** (gpt-4o-mini).
+A pull-request reviewer agent built on **Microsoft Semantic Kernel** —
+Microsoft's open-source agent SDK — routed through **Vertex AI Gemini 2.5 Flash**.
 
 Open source under Apache 2.0.
 
 ## What it does
 
 You give it a GitHub repo + PR number. The agent walks the PR with three
-tools — `get_pr_summary`, `list_pr_files`, `get_pr_diff` — then returns a
-structured review with a verdict (APPROVE / REQUEST_CHANGES /
-NEEDS_MORE_INFO), a risk level (LOW / MEDIUM / HIGH), 3–5 evidence
-bullets, the biggest 1–3 concerns, and a single next-step instruction
-for the author.
+Semantic Kernel `kernel_function` tools — `get_pr_summary`, `list_pr_files`,
+`get_pr_diff` — then returns a structured review with a verdict (APPROVE /
+REQUEST_CHANGES / NEEDS_MORE_INFO), a risk level (LOW / MEDIUM / HIGH),
+3–5 evidence bullets, the biggest 1–3 concerns, and one next-step
+instruction for the author.
+
+## Why Semantic Kernel + Vertex AI
+
+Semantic Kernel is Microsoft's agent SDK — that's the Microsoft product
+required by the Agent Academy hackathon. SK is provider-agnostic; this
+build routes through Vertex AI Gemini via the
+`semantic_kernel.connectors.ai.google.vertex_ai` connector because GCP
+plumbing is already wired and reviewers can run it without provisioning
+an Azure tenant. Swap the connector for `AzureChatCompletion` in five
+lines if you do have Azure OpenAI.
 
 ## Architecture
 
 ```
-┌─────────────┐  repo + PR number    ┌──────────────────────────────┐
-│  Streamlit  │ ───────────────────▶ │  Semantic Kernel Kernel       │
-│  dashboard  │                       │  (Azure OpenAI gpt-4o-mini)   │
-└─────────────┘ ◀── verdict + cites ─└────┬─────────────────────────┘
-                                            │ FunctionChoiceBehavior.Auto
+┌─────────────┐  repo + PR number    ┌────────────────────────────────────┐
+│  Streamlit  │ ───────────────────▶ │  Semantic Kernel Kernel            │
+│  dashboard  │                       │  VertexAIChatCompletion service    │
+│             │                       │  + FunctionChoiceBehavior.Auto     │
+└─────────────┘ ◀── verdict + cites ─└────┬───────────────────────────────┘
+                                            │ kernel_function tool calls
                                             ▼
-                                   ┌─────────────────────────┐
-                                   │  GitHubPRPlugin          │
-                                   │  3 kernel_function tools │
-                                   │  (stub or real GitHub)   │
-                                   └─────────────────────────┘
+                                   ┌─────────────────────────────┐
+                                   │  GitHubPRPlugin              │
+                                   │  3 kernel_function tools     │
+                                   │  (canned or real GitHub API) │
+                                   └─────────────────────────────┘
 ```
 
-## Try it locally (no Azure credentials needed — offline fallback)
+## Try it locally
 
 ```bash
 git clone https://github.com/MukundaKatta/agent-academy-msft
 cd agent-academy-msft
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
+
+gcloud auth application-default login
+export GOOGLE_CLOUD_PROJECT=your-project
+export GOOGLE_CLOUD_LOCATION=us-central1
+
 PYTHONPATH=src streamlit run app/dashboard.py
 ```
 
-Without `AZURE_OPENAI_ENDPOINT`, the agent returns a deterministic
-rule-based review. With Azure configured, it routes through gpt-4o-mini.
+Without `GOOGLE_CLOUD_PROJECT`, the agent falls back to a deterministic
+rule-based review so reviewers can still see something on the dashboard.
 
-## Configure Azure OpenAI
-
-```bash
-export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com/"
-export AZURE_OPENAI_API_KEY="..."
-export AZURE_OPENAI_DEPLOYMENT="gpt-4o-mini"
-export AZURE_OPENAI_API_VERSION="2024-10-21"
-```
-
-## Configure real GitHub PR fetching
+## Real GitHub PR fetching
 
 ```bash
 export GITHUB_TOKEN="ghp_..."
@@ -67,6 +74,11 @@ PYTHONPATH=src pytest -q
 ```
 
 9 tests cover canned PR fixtures + the offline-fallback verdict logic.
+
+## Microsoft products used
+
+- **Microsoft Semantic Kernel** (the agent framework — `Kernel`,
+  `kernel_function`, `FunctionChoiceBehavior.Auto`)
 
 ## License
 

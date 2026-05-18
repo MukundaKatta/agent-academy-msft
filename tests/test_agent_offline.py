@@ -11,9 +11,9 @@ from agent_academy_msft.agent import run_review
 
 
 @pytest.fixture(autouse=True)
-def _clear_azure_env(monkeypatch):
+def _clear_gcp_env(monkeypatch):
     """Force offline fallback for these tests."""
-    for k in ("AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_DEPLOYMENT"):
+    for k in ("GOOGLE_CLOUD_PROJECT", "GOOGLE_CLOUD_LOCATION", "SK_GEMINI_MODEL"):
         monkeypatch.delenv(k, raising=False)
 
 
